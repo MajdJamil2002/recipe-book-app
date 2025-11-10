@@ -1,0 +1,149 @@
+import 'package:flutter/material.dart';
+import '../../../core/services/database_service.dart';
+
+class NotesListScreen extends StatefulWidget {
+  const NotesListScreen({super.key});
+
+  @override
+  State<NotesListScreen> createState() => _NotesListScreenState();
+}
+
+class _NotesListScreenState extends State<NotesListScreen> {
+  bool _loading = true;
+  List<Map<String, Object?>> _notes = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final notes = await DatabaseService.instance.getNotes();
+    setState(() {
+      _notes = notes;
+      _loading = false;
+    });
+  }
+
+  Future<void> _addNote() async {
+    final created = await Navigator.of(context).push<Map<String, Object?>>(
+      MaterialPageRoute(builder: (_) => const _AddNoteScreen()),
+    );
+    if (created != null) {
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ملاحظاتي'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addNote,
+        child: const Icon(Icons.add),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _notes.isEmpty
+              ? const Center(child: Text('لا توجد ملاحظات بعد'))
+              : ListView.builder(
+                  itemCount: _notes.length,
+                  itemBuilder: (context, index) {
+                    final note = _notes[index];
+                    return Dismissible(
+                      key: ValueKey(note['id']),
+                      background: Container(color: Colors.red),
+                      onDismissed: (_) async {
+                        await DatabaseService.instance.deleteNote(note['id'] as int);
+                        _load();
+                      },
+                      child: ListTile(
+                        title: Text(note['title'] as String),
+                        subtitle: Text(
+                          note['content'] as String,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
+
+class _AddNoteScreen extends StatefulWidget {
+  const _AddNoteScreen();
+
+  @override
+  State<_AddNoteScreen> createState() => _AddNoteScreenState();
+}
+
+class _AddNoteScreenState extends State<_AddNoteScreen> {
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل العنوان والمحتوى')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    await DatabaseService.instance.createNote(
+      title: _titleController.text.trim(),
+      content: _contentController.text.trim(),
+    );
+    if (mounted) Navigator.of(context).pop({'ok': true});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إضافة ملاحظة'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'العنوان', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _contentController,
+              minLines: 4,
+              maxLines: 8,
+              decoration: const InputDecoration(labelText: 'المحتوى', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
