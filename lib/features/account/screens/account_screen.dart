@@ -1,23 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
+import '../../../core/services/theme_service.dart';
+import '../../recipes/services/recipe_service.dart';
+import '../../../core/services/database_service.dart';
+import '../../notes/screens/notes_list_screen.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
 
   @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  final RecipeService _recipeService = RecipeService();
+  int _totalRecipes = 0;
+  int _favoriteCount = 0;
+  int _notesCount = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    setState(() => _isLoading = true);
+    try {
+      final allRecipes = await _recipeService.getAllRecipes();
+      final favorites = await _recipeService.getFavoriteRecipes();
+      final notes = await DatabaseService.instance.getNotes();
+      
+      if (mounted) {
+        setState(() {
+          _totalRecipes = allRecipes.length;
+          _favoriteCount = favorites.length;
+          _notesCount = notes.length;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final userEmail = AuthService.instance.email ?? 'غير محدد';
+    final authService = Provider.of<AuthService>(context);
+    final userEmail = authService.email ?? 'غير محدد';
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('حسابي'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
+            IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await AuthService.instance.logout();
+              await authService.logout();
               if (context.mounted) {
                 context.go('/login');
               }
@@ -30,7 +75,6 @@ class AccountScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User Info Card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -80,7 +124,6 @@ class AccountScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
-            // Quick Stats
             Text(
               'إحصائيات سريعة',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -88,52 +131,46 @@ class AccountScreen extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.menu_book,
-                    title: 'الوصفات',
-                    value: '10+',
-                    color: Colors.blue,
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          icon: Icons.menu_book,
+                          title: 'الوصفات',
+                          value: '$_totalRecipes',
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatCard(
+                          icon: Icons.favorite,
+                          title: 'المفضلة',
+                          value: '$_favoriteCount',
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.favorite,
-                    title: 'المفضلة',
-                    value: '5+',
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.note_alt,
-                    title: 'الملاحظات',
-                    value: '3+',
-                    color: Colors.green,
+            _isLoading
+                ? const SizedBox.shrink()
+                : Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          icon: Icons.note_alt,
+                          title: 'الملاحظات',
+                          value: '$_notesCount',
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.people,
-                    title: 'المستخدمين',
-                    value: '8+',
-                    color: Colors.orange,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 24),
             
-            // Actions
             Text(
               'إجراءات',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -158,7 +195,29 @@ class AccountScreen extends StatelessWidget {
               title: const Text('ملاحظاتي'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                // Navigate to notes
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotesListScreen(),
+                  ),
+                ).then((_) {
+                  // إعادة تحميل الإحصائيات عند العودة
+                  _loadStats();
+                });
+              },
+            ),
+            Consumer<ThemeService>(
+              builder: (context, themeService, child) {
+                final isDark = themeService.themeMode == ThemeMode.dark;
+                return ListTile(
+                  leading: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
+                  title: Text(isDark ? 'الوضع الداكن' : 'الوضع الفاتح'),
+                  trailing: Switch(
+                    value: isDark,
+                    onChanged: (value) {
+                      themeService.toggleDarkLight();
+                    },
+                  ),
+                );
               },
             ),
             ListTile(
@@ -166,7 +225,7 @@ class AccountScreen extends StatelessWidget {
               title: const Text('تسجيل الخروج'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () async {
-                await AuthService.instance.logout();
+                await authService.logout();
                 if (context.mounted) {
                   context.go('/login');
                 }

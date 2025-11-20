@@ -11,7 +11,6 @@ class RecipeService {
       final recipesJson = prefs.getStringList(_recipesKey) ?? [];
       
       if (recipesJson.isEmpty) {
-        // Return sample recipes if no recipes are stored
         return _getSampleRecipes();
       }
       

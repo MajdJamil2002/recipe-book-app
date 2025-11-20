@@ -133,7 +133,6 @@ class _FavoriteRecipeCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Recipe Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
@@ -152,7 +151,6 @@ class _FavoriteRecipeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              // Recipe Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +208,6 @@ class _FavoriteRecipeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Favorite Button
               IconButton(
                 icon: const Icon(Icons.favorite, color: Colors.red),
                 onPressed: onFavoriteToggle,

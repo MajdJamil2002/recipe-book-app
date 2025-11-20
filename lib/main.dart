@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/auth/services/auth_service.dart';
@@ -9,7 +10,6 @@ import 'features/recipes/screens/add_recipe_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/menu/screens/menu_screen.dart';
-import 'features/recipes/screens/edit_recipe_screen.dart';
 import 'features/account/screens/account_screen.dart';
 import 'shared/widgets/app_shell.dart';
 import 'core/services/theme_service.dart';
@@ -26,49 +26,71 @@ class RecipeBookApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'كتاب الوصفات',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.orange,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 2,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: AuthService.instance),
+        ChangeNotifierProvider.value(value: ThemeService.instance),
+      ],
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp.router(
+            title: 'كتاب الوصفات',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.orange,
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 2,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.orange,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 2,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            themeMode: themeService.themeMode,
+            routerConfig: _createRouter(),
+          );
+        },
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.orange,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeService.instance.themeMode,
-      routerConfig: _router,
     );
   }
 }
 
-final GoRouter _router = GoRouter(
-  initialLocation: '/',
-  redirect: (context, state) {
-    final loggedIn = AuthService.instance.isLoggedIn;
-    final loggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-    if (!loggedIn && !loggingIn) return '/login';
-    if (loggedIn && loggingIn) return '/';
-    return null;
-  },
-  refreshListenable: AuthService.instance,
-  routes: [
+GoRouter _createRouter() {
+  return GoRouter(
+    initialLocation: '/',
+    redirect: (context, state) {
+      final loggedIn = AuthService.instance.isLoggedIn;
+      final loggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      if (!loggedIn && !loggingIn) return '/login';
+      if (loggedIn && loggingIn) return '/';
+      return null;
+    },
+    refreshListenable: AuthService.instance,
+    routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
       branches: [
@@ -130,6 +152,11 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const RegisterScreen(),
     ),
     GoRoute(
+      path: '/recipes',
+      name: 'recipes',
+      builder: (context, state) => const RecipeListScreen(),
+    ),
+    GoRoute(
       path: '/recipe/:id',
       name: 'recipe-detail',
       builder: (context, state) {
@@ -141,9 +168,9 @@ final GoRouter _router = GoRouter(
       path: '/edit-recipe/:id',
       name: 'edit-recipe',
       builder: (context, state) {
-        // Placeholder; editing navigates from detail via push and returns updated recipe
         return const Scaffold();
       },
     ),
   ],
-);
+  );
+}

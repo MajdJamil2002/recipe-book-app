@@ -16,7 +16,6 @@ class MenuScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Quick Actions
           Container(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -52,7 +51,6 @@ class MenuScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
-          // Menu Items
           Expanded(
             child: ListView(
               children: [

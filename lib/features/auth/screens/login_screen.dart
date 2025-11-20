@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,7 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await AuthService.instance.login(
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );

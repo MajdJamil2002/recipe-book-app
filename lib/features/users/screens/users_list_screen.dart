@@ -73,7 +73,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     if (confirmed == true) {
       try {
         await _networkService.deleteUser(id);
-        // محاكاة الحذف محلياً لأن API وهمي
         setState(() {
           _users.removeWhere((user) => user['id'] == id);
         });
@@ -278,7 +277,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
                             phone: phoneController.text.trim(),
                             website: websiteController.text.trim(),
                           );
-                          // إضافة المستخدم الجديد محلياً
                           setState(() {
                             _users.insert(0, {
                               'id': DateTime.now().millisecondsSinceEpoch,
@@ -296,7 +294,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
                             phone: phoneController.text.trim(),
                             website: websiteController.text.trim(),
                           );
-                          // تحديث المستخدم محلياً
                           setState(() {
                             final index = _users.indexWhere((u) => u['id'] == user['id']);
                             if (index != -1) {

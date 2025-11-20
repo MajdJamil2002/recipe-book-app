@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -32,15 +33,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _error = null;
     });
     try {
-      await AuthService.instance.register(
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إنشاء الحساب بنجاح، سجّل الدخول الآن')),
+          const SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
         );
-        context.go('/login');
+        context.go('/');
       }
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));

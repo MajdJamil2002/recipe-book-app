@@ -20,11 +20,25 @@ class _NotesListScreenState extends State<NotesListScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final notes = await DatabaseService.instance.getNotes();
-    setState(() {
-      _notes = notes;
-      _loading = false;
-    });
+    try {
+      final notes = await DatabaseService.instance.getNotes();
+      if (mounted) {
+        setState(() {
+          _notes = notes;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في تحميل الملاحظات: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _addNote() async {
@@ -59,8 +73,28 @@ class _NotesListScreenState extends State<NotesListScreen> {
                       key: ValueKey(note['id']),
                       background: Container(color: Colors.red),
                       onDismissed: (_) async {
-                        await DatabaseService.instance.deleteNote(note['id'] as int);
-                        _load();
+                        try {
+                          await DatabaseService.instance.deleteNote(note['id'] as int);
+                          if (mounted) {
+                            _load();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم حذف الملاحظة'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('خطأ في حذف الملاحظة: $e'),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                            _load(); // إعادة تحميل لإعادة الملاحظة المحذوفة
+                          }
+                        }
                       },
                       child: ListTile(
                         title: Text(note['title'] as String),
@@ -99,16 +133,42 @@ class _AddNoteScreenState extends State<_AddNoteScreen> {
   Future<void> _save() async {
     if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل العنوان والمحتوى')),
+        const SnackBar(
+          content: Text('أدخل العنوان والمحتوى'),
+          duration: Duration(seconds: 2),
+        ),
       );
       return;
     }
+    
     setState(() => _saving = true);
-    await DatabaseService.instance.createNote(
-      title: _titleController.text.trim(),
-      content: _contentController.text.trim(),
-    );
-    if (mounted) Navigator.of(context).pop({'ok': true});
+    
+    try {
+      await DatabaseService.instance.createNote(
+        title: _titleController.text.trim(),
+        content: _contentController.text.trim(),
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حفظ الملاحظة بنجاح'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.of(context).pop({'ok': true});
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في حفظ الملاحظة: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -116,6 +176,10 @@ class _AddNoteScreenState extends State<_AddNoteScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إضافة ملاحظة'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

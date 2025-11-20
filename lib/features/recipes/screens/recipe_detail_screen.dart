@@ -37,7 +37,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في تحميل الوصفة: $e')),
+          SnackBar(
+            content: Text('خطأ في تحميل الوصفة: $e'),
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -52,10 +55,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       setState(() {
         _recipe = updatedRecipe;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(updatedRecipe.isFavorite ? 'تمت إضافة الوصفة للمفضلة' : 'تمت إزالة الوصفة من المفضلة'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في تحديث المفضلة: $e')),
+          SnackBar(
+            content: Text('خطأ في تحديث المفضلة: $e'),
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -67,6 +81,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       appBar: AppBar(
         title: const Text('تفاصيل الوصفة'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
         actions: [
           if (_recipe != null)
             IconButton(
@@ -91,7 +115,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Recipe Image
                       Container(
                         height: 250,
                         width: double.infinity,
@@ -111,7 +134,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Recipe Title
                             Text(
                               _recipe!.title,
                               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -119,7 +141,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   ),
                             ),
                             const SizedBox(height: 8),
-                            // Recipe Description
                             Text(
                               _recipe!.description,
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -127,7 +148,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   ),
                             ),
                             const SizedBox(height: 16),
-                            // Recipe Info Cards
                             Row(
                               children: [
                                 Expanded(
@@ -156,7 +176,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            // Ingredients Section
                             Text(
                               'المكونات',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -189,7 +208,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            // Instructions Section
                             Text(
                               'طريقة التحضير',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(

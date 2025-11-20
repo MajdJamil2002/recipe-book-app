@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../shared/models/recipe.dart';
 import '../../recipes/services/recipe_service.dart';
 import '../../auth/services/auth_service.dart';
+import 'package:flutter/widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,14 +25,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadDashboardData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent && !_isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadDashboardData();
+        }
+      });
+    }
+  }
+
+
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
     try {
       final allRecipes = await _recipeService.getAllRecipes();
       final favorites = await _recipeService.getFavoriteRecipes();
       
+      final sortedRecipes = List<Recipe>.from(allRecipes);
+      sortedRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
       setState(() {
-        _recentRecipes = allRecipes.take(3).toList();
+        _recentRecipes = sortedRecipes.take(3).toList();
         _favoriteRecipes = favorites.take(3).toList();
         _isLoading = false;
       });
@@ -41,7 +60,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userEmail = AuthService.instance.email ?? 'مستخدم';
+    final authService = Provider.of<AuthService>(context);
+    final userEmail = authService.email ?? 'مستخدم';
     
     return Scaffold(
       appBar: AppBar(
@@ -54,54 +74,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome Section
-                    _WelcomeCard(userEmail: userEmail),
-                    const SizedBox(height: 20),
-                    
-                    // Quick Stats
-                    _StatsSection(
-                      totalRecipes: _recentRecipes.length + 7, // محاكاة إجمالي
-                      favoriteCount: _favoriteRecipes.length,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Quick Actions
-                    _QuickActionsSection(),
-                    const SizedBox(height: 20),
-                    
-                    // Recent Recipes
-                    if (_recentRecipes.isNotEmpty) ...[
-                      _SectionTitle(
-                        title: 'الوصفات الحديثة',
-                        onTap: () => context.go('/'),
-                      ),
-                      const SizedBox(height: 12),
-                      _RecentRecipesList(recipes: _recentRecipes),
-                      const SizedBox(height: 20),
-                    ],
-                    
-                    // Favorite Recipes
-                    if (_favoriteRecipes.isNotEmpty) ...[
-                      _SectionTitle(
-                        title: 'الوصفات المفضلة',
-                        onTap: () => context.go('/favorites'),
-                      ),
-                      const SizedBox(height: 12),
-                      _FavoriteRecipesList(recipes: _favoriteRecipes),
-                    ],
-                  ],
-                ),
-              ),
+      body: _DashboardBody(
+        isLoading: _isLoading,
+        recentRecipes: _recentRecipes,
+        favoriteRecipes: _favoriteRecipes,
+        userEmail: userEmail,
+        onRefresh: _loadDashboardData,
+        recipeService: _recipeService,
+      ),
+    );
+  }
+}
+
+class _DashboardBody extends StatefulWidget {
+  final bool isLoading;
+  final List<Recipe> recentRecipes;
+  final List<Recipe> favoriteRecipes;
+  final String userEmail;
+  final VoidCallback onRefresh;
+  final RecipeService recipeService;
+
+  const _DashboardBody({
+    required this.isLoading,
+    required this.recentRecipes,
+    required this.favoriteRecipes,
+    required this.userEmail,
+    required this.onRefresh,
+    required this.recipeService,
+  });
+
+  @override
+  State<_DashboardBody> createState() => _DashboardBodyState();
+}
+
+class _DashboardBodyState extends State<_DashboardBody> {
+  int _totalRecipes = 0;
+  bool _hasLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTotalRecipes();
+  }
+
+  Future<void> _loadTotalRecipes() async {
+    try {
+      final allRecipes = await widget.recipeService.getAllRecipes();
+      if (mounted) {
+        setState(() {
+          _totalRecipes = allRecipes.length;
+          _hasLoaded = true;
+        });
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  @override
+  void didUpdateWidget(_DashboardBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // إعادة تحميل العدد الإجمالي عند تغيير الوصفات
+    if (oldWidget.recentRecipes.length != widget.recentRecipes.length) {
+      _loadTotalRecipes();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // إعادة تحميل العدد الإجمالي عند فتح الشاشة (مرة واحدة فقط)
+    if (!_hasLoaded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadTotalRecipes();
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    return RefreshIndicator(
+      onRefresh: () async => widget.onRefresh(),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _WelcomeCard(userEmail: widget.userEmail),
+            const SizedBox(height: 20),
+            
+            _StatsSection(
+              totalRecipes: _totalRecipes,
+              favoriteCount: widget.favoriteRecipes.length,
             ),
+            const SizedBox(height: 20),
+            
+            _QuickActionsSection(),
+            const SizedBox(height: 20),
+            
+            if (widget.recentRecipes.isNotEmpty) ...[
+              _SectionTitle(
+                title: 'الوصفات الحديثة',
+                onTap: () => context.go('/recipes'),
+              ),
+              const SizedBox(height: 12),
+              _RecentRecipesList(recipes: widget.recentRecipes),
+              const SizedBox(height: 20),
+            ],
+            
+            if (widget.favoriteRecipes.isNotEmpty) ...[
+              _SectionTitle(
+                title: 'الوصفات المفضلة',
+                onTap: () => context.go('/favorites'),
+              ),
+              const SizedBox(height: 12),
+              _FavoriteRecipesList(recipes: widget.favoriteRecipes),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -193,15 +290,6 @@ class _StatsSection extends StatelessWidget {
             title: 'المفضلة',
             value: '$favoriteCount',
             color: Colors.red,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.trending_up,
-            title: 'هذا الأسبوع',
-            value: '+3',
-            color: Colors.green,
           ),
         ),
       ],

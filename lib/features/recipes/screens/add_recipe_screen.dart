@@ -157,7 +157,6 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Basic Information
               Text(
                 'المعلومات الأساسية',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -265,7 +264,6 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Ingredients Section
               Text(
                 'المكونات',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -311,7 +309,6 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                 );
               }),
               const SizedBox(height: 24),
-              // Instructions Section
               Text(
                 'طريقة التحضير',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(

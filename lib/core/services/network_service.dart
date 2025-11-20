@@ -5,7 +5,6 @@ class NetworkService {
   static const String baseUrl = 'https://jsonplaceholder.typicode.com';
   static const Duration timeout = Duration(seconds: 10);
 
-  // GET /users - Read all users
   Future<List<Map<String, dynamic>>> getUsers() async {
     final response = await http.get(
       Uri.parse('$baseUrl/users'),
@@ -20,7 +19,6 @@ class NetworkService {
     }
   }
 
-  // GET /users/:id - Read single user
   Future<Map<String, dynamic>> getUser(int id) async {
     final response = await http.get(
       Uri.parse('$baseUrl/users/$id'),
@@ -34,7 +32,6 @@ class NetworkService {
     }
   }
 
-  // POST /users - Create user
   Future<Map<String, dynamic>> createUser({
     required String name,
     required String email,
@@ -60,7 +57,6 @@ class NetworkService {
     }
   }
 
-  // PUT /users/:id - Update user
   Future<Map<String, dynamic>> updateUser({
     required int id,
     required String name,
@@ -88,7 +84,6 @@ class NetworkService {
     }
   }
 
-  // DELETE /users/:id - Delete user
   Future<void> deleteUser(int id) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/users/$id'),

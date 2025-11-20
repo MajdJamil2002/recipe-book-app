@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../shared/models/recipe.dart';
 import '../services/recipe_service.dart';
 import '../../auth/services/auth_service.dart';
@@ -64,12 +65,23 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       appBar: AppBar(
         title: const Text('كتاب الوصفات'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
         actions: [
           IconButton(
             tooltip: 'تسجيل الخروج',
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await AuthService.instance.logout();
+              final authService = Provider.of<AuthService>(context, listen: false);
+              await authService.logout();
               if (mounted) context.go('/login');
             },
           ),
@@ -81,7 +93,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       ),
       body: Column(
         children: [
-          // Category Filter
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -107,7 +118,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               },
             ),
           ),
-          // Recipes List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -206,7 +216,6 @@ class RecipeCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Recipe Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
@@ -225,7 +234,6 @@ class RecipeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              // Recipe Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +276,6 @@ class RecipeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Favorite Button
               IconButton(
                 icon: Icon(
                   recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
